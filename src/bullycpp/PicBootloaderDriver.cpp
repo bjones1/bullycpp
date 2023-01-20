@@ -196,7 +196,8 @@ void PicBootloaderDriver::programHexFile(std::istream& hexFile)
 
 		lineStream.ignore(1); // Ignore ':'
 		const uint8_t byteCount = parseHex<uint8_t>(lineStream);
-		uint16_t address = parseHex<uint16_t>(lineStream);
+        // Although the raw address here is 16 bits, the extended address (extAddr) allows an effective address with 32-bit range. Therefore, store the address as 32 bits.
+		uint32_t address = parseHex<uint16_t>(lineStream);
 		const uint8_t recordType = parseHex<uint8_t>(lineStream);
 		switch(recordType) {
 		case 0:
@@ -398,7 +399,7 @@ void PicBootloaderDriver::parseDeviceLine(const std::string& deviceLine)
 	std::string item;
 	while(std::getline(ss, item, ','))
 		parts.push_back(item);
-	
+
 	if(parts.size() != 6) {
 		std::cerr << "Bad device line: " << deviceLine << std::endl;
 		return;
@@ -450,7 +451,7 @@ namespace {
 	}
 }
 
-bool PicBootloaderDriver::checkAddressClash(const unsigned int address, const PicDevice::Family family)
+bool PicBootloaderDriver::checkAddressClash(const uint32_t address, const PicDevice::Family family)
 {
 	// Check if page starts at 0x400.
 	// If so, this page definitely clashes with the bootloader.
@@ -458,7 +459,7 @@ bool PicBootloaderDriver::checkAddressClash(const unsigned int address, const Pi
 	         && (address == 0x400));
 }
 
-bool PicBootloaderDriver::checkAddressClash(const unsigned int address, const uint16_t data, const PicDevice::Family family)
+bool PicBootloaderDriver::checkAddressClash(const uint32_t address, const uint16_t data, const PicDevice::Family family)
 {
 	// Ensure that each word between >= 0x200 and <0xC00 is == 0xFFFF
 	// or else we clash with bootloader!
@@ -466,7 +467,7 @@ bool PicBootloaderDriver::checkAddressClash(const unsigned int address, const ui
 	         && (address >= 0x200 && address < PROGRAM_START && data != 0xFFFF));
 }
 
-bool PicBootloaderDriver::checkAddressClash(const unsigned int address, const uint16_t data, const PicDevice::Family family, const unsigned int configPage, const unsigned int configWord)
+bool PicBootloaderDriver::checkAddressClash(const uint32_t address, const uint16_t data, const PicDevice::Family family, const unsigned int configPage, const unsigned int configWord)
 {
 	// If PIC24F/PIC24E/dsPIC33E code is located on last page,
 	// and configuration bit programming is not enabled, then abort.
